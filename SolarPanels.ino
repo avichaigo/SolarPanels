@@ -1,66 +1,59 @@
 #include <EEPROM.h>
 #include <Servo.h>
+#define PRESSED 0
 
-Servo myservo;
+Servo servo_9;
+Servo servo_10;
 
-int sensor1 = A1;
-int sensor2 = A0;
-int calswitch = 2;
+int sensor0 = 0;
+int sensor1 = 0;
+int kill_button = 2;
 
-int val1;
-int val2;
-
-int pos = 0;
-int error;
-int state;
+int pos_9 = 0;
+int pos_10 = 0;
 
 void setup()
 {
+    pinMode(sensor0, INPUT);
     pinMode(sensor1, INPUT);
-    pinMode(sensor2, INPUT);
-    pinMode(calswitch, INPUT);
+    pinMode(kill_button, INPUT);
 
-    myservo.attach(10);
-    myservo.attach(9);
+    servo_9.attach(9);
+    servo_10.attach(10);
+}
+
+void fix_pos(int *pos){
+    if(*pos > 90){
+        *pos = 90;
+    }else if(*pos < 0){
+        *pos = 0;
+    }
 }
 
 void loop()
 {
     // Button that reset servos
-    if (digitalRead(calswitch) == 0){
-        myservo.detach();
+    if (digitalRead(kill_button) == PRESSED){
+        servo_9.detach();
+        servo_10.detach();
         delay(1000);
-        myservo.attach(10);
-        myservo.attach(9);
+        servo_9.attach(9);
+        servo_10.attach(10);
     }else{
-        val1 = analogRead(sensor1);
-        val2 = analogRead(sensor2);
-
-        state = EEPROM.read(1);
-        error = EEPROM.read(0);
-
-        if (state == 0){
-            val1 = val1 - error;
-        }
-        else{
-            val2 = val2 - error;
-        }
-        if (val1 - val2 > 4){
-            myservo.write(pos--);
+        sensor0 = analogRead(A0);
+        sensor1 = analogRead(A1);
+        
+        if (sensor0 > sensor1){
+            servo_9.write(pos_9--);
+            servo_10.write(pos_10++);
             delay(10);
         }
-        else if (val2 - val1 > 4){
-            myservo.write(pos++);
+        else if (sensor0 < sensor1){
+            servo_9.write(pos_9++);
+            servo_10.write(pos_10--);
             delay(10);
         }
-        else{
-            myservo.write(pos);
-        }
-        if (pos > 90){
-            pos = 90;
-        }
-        else if (pos < 0){
-            pos = 0;
-        }
+        fix_pos(&pos_9);
+        fix_pos(&pos_10);
     }
 }
